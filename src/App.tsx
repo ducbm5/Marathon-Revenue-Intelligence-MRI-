@@ -111,17 +111,45 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetch("/api/marathon-data")
-        .then((res) => res.json())
-        .then((json) => {
-          setData(json);
+      const fetchSheetData = async () => {
+        try {
+          const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2-6kiwov9POZLPZEB7pBY6ced8BJZ8JEhpCg3PuYTY21TxawztC7gnEMQm2hVB3MB1cYXsDtu2UoI/pub?output=tsv";
+          const response = await fetch(url);
+          if (!response.ok) throw new Error("Network response was not ok");
+          const tsvData = await response.text();
+          
+          // Simple TSV to JSON parser
+          const lines = tsvData.split("\n");
+          if (lines.length < 2) {
+            setData([]);
+            setLoading(false);
+            return;
+          }
+
+          const headers = lines[0].split("\t").map((h: string) => h.trim());
+          const result: Participant[] = [];
+          
+          for (let i = 1; i < lines.length; i++) {
+            const currentLine = lines[i].split("\t");
+            if (currentLine.length < headers.length) continue;
+            
+            const obj: any = {};
+            for (let j = 0; j < headers.length; j++) {
+              obj[headers[j]] = currentLine[j]?.trim();
+            }
+            result.push(obj as Participant);
+          }
+          
+          setData(result);
           setLoading(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          setError("Failed to load data from Google Sheets");
+        } catch (err) {
+          console.error("Error fetching marathon data:", err);
+          setError("Failed to load data from Google Sheets. Please check your internet connection or the sheet's public access.");
           setLoading(false);
-        });
+        }
+      };
+
+      fetchSheetData();
     }
   }, [isAuthenticated]);
 
