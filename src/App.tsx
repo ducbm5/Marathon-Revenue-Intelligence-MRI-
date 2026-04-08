@@ -18,14 +18,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger,
-  DialogFooter
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { 
   Popover, 
@@ -34,22 +26,16 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { 
-  Settings, 
   Calendar as CalendarIcon, 
   Filter, 
   Search, 
   Activity, 
   DollarSign,
-  ChevronRight,
-  Plus,
   Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
-
-// Mapping of Match ID to Race Name
-type MatchMap = Record<string, string>;
 
 const SECRET_TOKEN = "xP9kL2mN5vR8qT1wY4zB7sD0fG3hJ6kL9mN2vR5qT8wY1zB4sD7fG0hJ3kL6mN9vR2qT5wY8zB1sD4fG7hJ0kL3mN6vR9qT2wY5zB8sD1fG4hJ7";
 
@@ -94,12 +80,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Settings & Filters
-  const [matchMap, setMatchMap] = useState<MatchMap>(() => {
-    const saved = localStorage.getItem("marathon_match_map");
-    return saved ? JSON.parse(saved) : { "80": "VnExpress Marathon 2024", "79": "VnExpress Marathon 2023", "60": "VnExpress Marathon 2022" };
-  });
-  
+  // Filters
   const [selectedRace, setSelectedRace] = useState<string>("all");
   const [selectedDistance, setSelectedDistance] = useState<string>("all");
   const [selectedStage, setSelectedStage] = useState<string>("all");
@@ -133,11 +114,6 @@ export default function App() {
     setDateRange({ from: undefined, to: undefined });
     setSearchTerm("");
   };
-
-  // Save map to localStorage
-  useEffect(() => {
-    localStorage.setItem("marathon_match_map", JSON.stringify(matchMap));
-  }, [matchMap]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -202,8 +178,7 @@ export default function App() {
 
   const filteredData = useMemo(() => {
     return data.filter((p) => {
-      const matchId = p["MATCH ID"];
-      const raceName = matchMap[matchId] || `Match ${matchId}`;
+      const raceName = p["MATCH NAME"] || `Match ${p["MATCH ID"]}`;
       
       const matchesRace = selectedRace === "all" || raceName === selectedRace;
       const matchesDistance = selectedDistance === "all" || p["CU LY"] === selectedDistance;
@@ -228,15 +203,14 @@ export default function App() {
 
       return matchesRace && matchesDistance && matchesStage && matchesDate && matchesSearch;
     });
-  }, [data, matchMap, selectedRace, selectedDistance, selectedStage, dateRange, searchTerm]);
+  }, [data, selectedRace, selectedDistance, selectedStage, dateRange, searchTerm]);
 
   // Revenue Calculation
   const revenueStats = useMemo(() => {
     const stats: Record<string, Record<string, number>> = {};
     
     filteredData.forEach((p) => {
-      const matchId = p["MATCH ID"];
-      const raceName = matchMap[matchId] || `Match ${matchId}`;
+      const raceName = p["MATCH NAME"] || `Match ${p["MATCH ID"]}`;
       const distance = p["CU LY"] || "Unknown";
       const amount = parseFloat(p["SO TIEN"]?.replace(/,/g, "") || "0");
 
@@ -245,33 +219,31 @@ export default function App() {
     });
 
     return stats;
-  }, [filteredData, matchMap]);
+  }, [filteredData]);
 
   // BIB Stats by Stage
   const bibStageStats = useMemo(() => {
     const stats: Record<string, Record<string, number>> = {};
     filteredData.forEach((p) => {
-      const matchId = p["MATCH ID"];
-      const raceName = matchMap[matchId] || `Match ${matchId}`;
+      const raceName = p["MATCH NAME"] || `Match ${p["MATCH ID"]}`;
       const stage = p["STAGE"] || "Unknown";
       if (!stats[raceName]) stats[raceName] = {};
       stats[raceName][stage] = (stats[raceName][stage] || 0) + 1;
     });
     return stats;
-  }, [filteredData, matchMap]);
+  }, [filteredData]);
 
   // BIB Stats by Distance
   const bibDistanceStats = useMemo(() => {
     const stats: Record<string, Record<string, number>> = {};
     filteredData.forEach((p) => {
-      const matchId = p["MATCH ID"];
-      const raceName = matchMap[matchId] || `Match ${matchId}`;
+      const raceName = p["MATCH NAME"] || `Match ${p["MATCH ID"]}`;
       const distance = p["CU LY"] || "Unknown";
       if (!stats[raceName]) stats[raceName] = {};
       stats[raceName][distance] = (stats[raceName][distance] || 0) + 1;
     });
     return stats;
-  }, [filteredData, matchMap]);
+  }, [filteredData]);
 
   const allDistances = useMemo(() => {
     const dists = new Set<string>();
@@ -288,11 +260,11 @@ export default function App() {
   const allRaceNames = useMemo(() => {
     const names = new Set<string>();
     data.forEach(p => {
-      const name = matchMap[p["MATCH ID"]] || `Match ${p["MATCH ID"]}`;
+      const name = p["MATCH NAME"] || `Match ${p["MATCH ID"]}`;
       names.add(name);
     });
     return Array.from(names).sort();
-  }, [data, matchMap]);
+  }, [data]);
 
   if (!isAuthenticated) {
     return (
@@ -304,7 +276,7 @@ export default function App() {
         >
           <div className="text-center space-y-2">
             <div className="inline-block p-3 border border-[var(--line)] mb-4">
-              <Settings className="w-8 h-8" />
+              <Activity className="w-8 h-8" />
             </div>
             <h1 className="text-4xl font-serif italic uppercase tracking-tighter">Security Access</h1>
             <p className="text-[10px] font-mono opacity-40 uppercase tracking-widest">Authorized Personnel Only</p>
@@ -366,7 +338,6 @@ export default function App() {
         
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={handleLogout} className="text-[10px] font-mono uppercase opacity-40 hover:opacity-100">Logout</Button>
-          <SettingsPopup matchMap={matchMap} setMatchMap={setMatchMap} />
           <div className="h-12 w-[1px] bg-[var(--line)] opacity-20 hidden md:block" />
           <div className="text-right">
             <p className="text-[10px] font-mono opacity-40 uppercase">Total Filtered Revenue</p>
@@ -630,7 +601,7 @@ export default function App() {
             {filteredData.slice(0, 15).map((p, idx) => (
               <TableRow key={`${p["USER ID"]}-${idx}`} className="data-row">
                 <TableCell className="data-value font-bold">{p["USER ID"]}</TableCell>
-                <TableCell className="font-serif italic text-sm">{matchMap[p["MATCH ID"]] || p["MATCH ID"]}</TableCell>
+                <TableCell className="font-serif italic text-sm">{p["MATCH NAME"] || p["MATCH ID"]}</TableCell>
                 <TableCell className="data-value">
                   <Badge variant="outline" className="rounded-none border-[var(--line)] font-mono text-[10px]">
                     {p["CU LY"]}km
@@ -654,97 +625,5 @@ export default function App() {
         </div>
       </footer>
     </div>
-  );
-}
-
-function SettingsPopup({ matchMap, setMatchMap }: { matchMap: MatchMap; setMatchMap: React.Dispatch<React.SetStateAction<MatchMap>> }) {
-  const [newId, setNewId] = useState("");
-  const [newName, setNewName] = useState("");
-
-  const handleAdd = () => {
-    if (newId && newName) {
-      setMatchMap(prev => ({ ...prev, [newId]: newName }));
-      setNewId("");
-      setNewName("");
-    }
-  };
-
-  const handleRemove = (id: string) => {
-    const next = { ...matchMap };
-    delete next[id];
-    setMatchMap(next);
-  };
-
-  return (
-    <Dialog>
-      <DialogTrigger render={
-        <Button variant="outline" className="rounded-none border-[var(--line)] font-mono uppercase text-xs gap-2">
-          <Settings className="w-4 h-4" />
-          Race Mapping
-        </Button>
-      } />
-      <DialogContent className="rounded-none border-[var(--line)] max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-serif italic text-2xl uppercase">Race Mapping Settings</DialogTitle>
-          <CardDescription className="font-mono text-xs">Map Match IDs to readable Race Names</CardDescription>
-        </DialogHeader>
-        
-        <div className="space-y-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="col-header">Match ID</Label>
-              <Input 
-                placeholder="e.g. 80" 
-                value={newId} 
-                onChange={(e) => setNewId(e.target.value)}
-                className="rounded-none border-[var(--line)] font-mono"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="col-header">Race Name</Label>
-              <Input 
-                placeholder="e.g. VM Hue 2024" 
-                value={newName} 
-                onChange={(e) => setNewName(e.target.value)}
-                className="rounded-none border-[var(--line)] font-mono"
-              />
-            </div>
-          </div>
-          <Button onClick={handleAdd} className="w-full rounded-none bg-[var(--ink)] text-[var(--bg)] font-mono uppercase text-xs gap-2">
-            <Plus className="w-4 h-4" /> Add Mapping
-          </Button>
-
-          <div className="border-t border-[var(--line)] pt-4 space-y-2">
-            <Label className="col-header">Current Mappings</Label>
-            <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2">
-              <AnimatePresence>
-                {Object.entries(matchMap).map(([id, name]) => (
-                  <motion.div 
-                    key={id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    className="flex items-center justify-between p-2 bg-black/5 border border-[var(--line)]/20"
-                  >
-                    <div className="font-mono text-xs">
-                      <span className="opacity-50">ID: {id}</span>
-                      <ChevronRight className="inline w-3 h-3 mx-1 opacity-30" />
-                      <span className="font-bold">{name}</span>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemove(id)} className="h-6 w-6 text-red-600 hover:bg-red-50">
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <p className="text-[9px] font-mono opacity-40 uppercase text-center w-full">Settings are saved locally in your browser</p>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

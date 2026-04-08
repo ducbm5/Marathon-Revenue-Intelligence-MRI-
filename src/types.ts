@@ -1,5 +1,6 @@
 export interface Participant {
   "MATCH ID": string;
+  "MATCH NAME": string;
   STT: string;
   "USER ID": string;
   "SO BIB": string;
