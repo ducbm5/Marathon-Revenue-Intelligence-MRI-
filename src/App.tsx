@@ -53,6 +53,36 @@ type MatchMap = Record<string, string>;
 
 const SECRET_TOKEN = "xP9kL2mN5vR8qT1wY4zB7sD0fG3hJ6kL9mN2vR5qT8wY1zB4sD7fG0hJ3kL6mN9vR2qT5wY8zB1sD4fG7hJ0kL3mN6vR9qT2wY5zB8sD1fG4hJ7";
 
+interface DashboardSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  description?: string;
+  rightElement?: React.ReactNode;
+}
+
+function DashboardSection({ title, icon, children, description, rightElement }: DashboardSectionProps) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-2 border border-[var(--line)]/20 bg-white/30">
+            {icon}
+          </div>
+          <div>
+            <h2 className="text-2xl font-serif italic uppercase tracking-tight leading-none">{title}</h2>
+            {description && <p className="text-[10px] font-mono opacity-40 uppercase tracking-widest mt-1">{description}</p>}
+          </div>
+        </div>
+        {rightElement}
+      </div>
+      <div className="border border-[var(--line)] overflow-hidden bg-white/20 backdrop-blur-sm">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("marathon_auth_token") === SECRET_TOKEN;
@@ -349,11 +379,13 @@ export default function App() {
 
       {/* Filters Bar */}
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 bg-white/50 p-4 border border-[var(--line)]">
-          <div className="space-y-1">
-            <Label className="col-header">Race Name</Label>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 bg-white/40 backdrop-blur-md p-6 border border-[var(--line)] shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]">
+          <div className="space-y-2">
+            <Label className="col-header flex items-center gap-2">
+              <Activity className="w-3 h-3" /> Race Name
+            </Label>
             <select 
-              className="w-full bg-transparent border border-[var(--line)] px-3 py-2 text-sm font-mono focus:outline-none"
+              className="w-full bg-transparent border border-[var(--line)] px-3 py-2 text-sm font-mono focus:outline-none focus:bg-white/50 transition-colors"
               value={selectedRace}
               onChange={(e) => setSelectedRace(e.target.value)}
             >
@@ -362,10 +394,12 @@ export default function App() {
             </select>
           </div>
 
-          <div className="space-y-1">
-            <Label className="col-header">Distance</Label>
+          <div className="space-y-2">
+            <Label className="col-header flex items-center gap-2">
+              <Filter className="w-3 h-3" /> Distance
+            </Label>
             <select 
-              className="w-full bg-transparent border border-[var(--line)] px-3 py-2 text-sm font-mono focus:outline-none"
+              className="w-full bg-transparent border border-[var(--line)] px-3 py-2 text-sm font-mono focus:outline-none focus:bg-white/50 transition-colors"
               value={selectedDistance}
               onChange={(e) => setSelectedDistance(e.target.value)}
             >
@@ -374,10 +408,12 @@ export default function App() {
             </select>
           </div>
 
-          <div className="space-y-1">
-            <Label className="col-header">Stage</Label>
+          <div className="space-y-2">
+            <Label className="col-header flex items-center gap-2">
+              <Activity className="w-3 h-3" /> Stage
+            </Label>
             <select 
-              className="w-full bg-transparent border border-[var(--line)] px-3 py-2 text-sm font-mono focus:outline-none"
+              className="w-full bg-transparent border border-[var(--line)] px-3 py-2 text-sm font-mono focus:outline-none focus:bg-white/50 transition-colors"
               value={selectedStage}
               onChange={(e) => setSelectedStage(e.target.value)}
             >
@@ -386,18 +422,20 @@ export default function App() {
             </select>
           </div>
 
-          <div className="space-y-1 lg:col-span-2">
-            <Label className="col-header">Date Range</Label>
+          <div className="space-y-2 lg:col-span-2">
+            <Label className="col-header flex items-center gap-2">
+              <CalendarIcon className="w-3 h-3" /> Date Range
+            </Label>
             <Popover>
               <PopoverTrigger render={
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-mono rounded-none border-[var(--line)] bg-transparent",
+                    "w-full justify-start text-left font-mono rounded-none border-[var(--line)] bg-transparent hover:bg-white/50",
                     !dateRange.from && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon className="mr-2 h-4 w-4 opacity-40" />
                   {dateRange.from ? (
                     dateRange.to ? (
                       <>
@@ -408,7 +446,7 @@ export default function App() {
                       format(dateRange.from, "LLL dd, y")
                     )
                   ) : (
-                    <span>Pick a date range</span>
+                    <span className="opacity-40">Pick a date range</span>
                   )}
                 </Button>
               } />
@@ -428,13 +466,15 @@ export default function App() {
             </Popover>
           </div>
 
-          <div className="space-y-1">
-            <Label className="col-header">Search</Label>
+          <div className="space-y-2">
+            <Label className="col-header flex items-center gap-2">
+              <Search className="w-3 h-3" /> Search
+            </Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
               <Input 
                 placeholder="User ID..." 
-                className="pl-10 rounded-none border-[var(--line)] bg-transparent focus:ring-0 font-mono text-sm"
+                className="pl-10 rounded-none border-[var(--line)] bg-transparent focus:ring-0 focus:bg-white/50 font-mono text-sm transition-colors"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -446,7 +486,7 @@ export default function App() {
             variant="outline" 
             size="sm" 
             onClick={resetFilters}
-            className="rounded-none border-[var(--line)] font-mono text-[10px] uppercase gap-2"
+            className="rounded-none border-[var(--line)] font-mono text-[10px] uppercase gap-2 hover:bg-[var(--ink)] hover:text-[var(--bg)] transition-all"
           >
             <Trash2 className="w-3 h-3" /> Reset Filters
           </Button>
@@ -454,168 +494,156 @@ export default function App() {
       </div>
 
       {/* Revenue Table */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5" />
-          <h2 className="text-2xl font-serif italic uppercase tracking-tight">Revenue Breakdown</h2>
-        </div>
-        
-        <div className="border border-[var(--line)] overflow-hidden">
-          <Table>
-            <TableHeader className="bg-[var(--ink)]">
-              <TableRow className="hover:bg-transparent border-none">
-                <TableHead className="col-header text-[var(--bg)] py-4">Race Name</TableHead>
-                {allDistances.map(d => (
-                  <TableHead key={d} className="col-header text-[var(--bg)] text-right">{d}km</TableHead>
-                ))}
-                <TableHead className="col-header text-[var(--bg)] text-right">Total (VND)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(revenueStats).map(([race, dists]) => {
-                const rowTotal = Object.values(dists).reduce((a, b) => a + b, 0);
-                return (
-                  <TableRow key={race} className="data-row">
-                    <TableCell className="font-serif italic text-lg">{race}</TableCell>
-                    {allDistances.map(d => (
-                      <TableCell key={d} className="data-value text-right">
-                        {dists[d] ? dists[d].toLocaleString() : "-"}
-                      </TableCell>
-                    ))}
-                    <TableCell className="data-value text-right font-bold bg-black/5">
-                      {rowTotal.toLocaleString()}
+      <DashboardSection 
+        title="Revenue Breakdown" 
+        icon={<DollarSign className="w-5 h-5" />}
+        description="Total revenue split by race and distance"
+      >
+        <Table>
+          <TableHeader className="bg-[var(--ink)]">
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead className="col-header text-[var(--bg)] py-4">Race Name</TableHead>
+              {allDistances.map(d => (
+                <TableHead key={d} className="col-header text-[var(--bg)] text-right">{d}km</TableHead>
+              ))}
+              <TableHead className="col-header text-[var(--bg)] text-right">Total (VND)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Object.entries(revenueStats).map(([race, dists]) => {
+              const rowTotal = Object.values(dists).reduce((a, b) => a + b, 0);
+              return (
+                <TableRow key={race} className="data-row">
+                  <TableCell className="font-serif italic text-lg">{race}</TableCell>
+                  {allDistances.map(d => (
+                    <TableCell key={d} className="data-value text-right">
+                      {dists[d] ? dists[d].toLocaleString() : "-"}
                     </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
+                  ))}
+                  <TableCell className="data-value text-right font-bold bg-black/5">
+                    {rowTotal.toLocaleString()}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </DashboardSection>
 
       {/* BIB by Stage */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Activity className="w-5 h-5" />
-          <h2 className="text-2xl font-serif italic uppercase tracking-tight">BIBs by Stage</h2>
-        </div>
-        <div className="border border-[var(--line)] overflow-hidden">
-          <Table>
-            <TableHeader className="bg-[var(--ink)]">
-              <TableRow className="hover:bg-transparent border-none">
-                <TableHead className="col-header text-[var(--bg)] py-4">Race</TableHead>
-                {allStages.map(s => (
-                  <TableHead key={s} className="col-header text-[var(--bg)] text-right">{s}</TableHead>
-                ))}
-                <TableHead className="col-header text-[var(--bg)] text-right">Total BIB</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(bibStageStats).map(([race, stages]) => {
-                const rowTotal = Object.values(stages).reduce((a, b) => a + b, 0);
-                return (
-                  <TableRow key={race} className="data-row">
-                    <TableCell className="font-mono text-xs font-bold">{race}</TableCell>
-                    {allStages.map(s => (
-                      <TableCell key={s} className="data-value text-right">
-                        {stages[s] || 0}
-                      </TableCell>
-                    ))}
-                    <TableCell className="data-value text-right font-bold bg-black/5">
-                      {rowTotal}
+      <DashboardSection 
+        title="BIBs by Stage" 
+        icon={<Activity className="w-5 h-5" />}
+        description="Registration count per sales stage"
+      >
+        <Table>
+          <TableHeader className="bg-[var(--ink)]">
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead className="col-header text-[var(--bg)] py-4">Race</TableHead>
+              {allStages.map(s => (
+                <TableHead key={s} className="col-header text-[var(--bg)] text-right">{s}</TableHead>
+              ))}
+              <TableHead className="col-header text-[var(--bg)] text-right">Total BIB</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Object.entries(bibStageStats).map(([race, stages]) => {
+              const rowTotal = Object.values(stages).reduce((a, b) => a + b, 0);
+              return (
+                <TableRow key={race} className="data-row">
+                  <TableCell className="font-serif italic text-base">{race}</TableCell>
+                  {allStages.map(s => (
+                    <TableCell key={s} className="data-value text-right">
+                      {stages[s] || 0}
                     </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
+                  ))}
+                  <TableCell className="data-value text-right font-bold bg-black/5">
+                    {rowTotal}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </DashboardSection>
 
       {/* BIB by Distance */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5" />
-          <h2 className="text-2xl font-serif italic uppercase tracking-tight">BIBs by Distance</h2>
-        </div>
-        <div className="border border-[var(--line)] overflow-hidden">
-          <Table>
-            <TableHeader className="bg-[var(--ink)]">
-              <TableRow className="hover:bg-transparent border-none">
-                <TableHead className="col-header text-[var(--bg)] py-4">Race</TableHead>
-                {allDistances.map(d => (
-                  <TableHead key={d} className="col-header text-[var(--bg)] text-center">{d}km (Count | %)</TableHead>
-                ))}
-                <TableHead className="col-header text-[var(--bg)] text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(bibDistanceStats).map(([race, dists]) => {
-                const rowTotal = Object.values(dists).reduce((a, b) => a + b, 0);
-                return (
-                  <TableRow key={race} className="data-row">
-                    <TableCell className="font-mono text-xs font-bold">{race}</TableCell>
-                    {allDistances.map(d => {
-                      const count = dists[d] || 0;
-                      const percentage = rowTotal > 0 ? (count / rowTotal * 100).toFixed(1) : 0;
-                      return (
-                        <TableCell key={d} className="data-value text-center">
-                          {count} <span className="opacity-40 text-[10px]">| {percentage}%</span>
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="data-value text-right font-bold bg-black/5">
-                      {rowTotal}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
+      <DashboardSection 
+        title="BIBs by Distance" 
+        icon={<Filter className="w-5 h-5" />}
+        description="Participant distribution across distances"
+      >
+        <Table>
+          <TableHeader className="bg-[var(--ink)]">
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead className="col-header text-[var(--bg)] py-4">Race</TableHead>
+              {allDistances.map(d => (
+                <TableHead key={d} className="col-header text-[var(--bg)] text-center">{d}km (Count | %)</TableHead>
+              ))}
+              <TableHead className="col-header text-[var(--bg)] text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Object.entries(bibDistanceStats).map(([race, dists]) => {
+              const rowTotal = Object.values(dists).reduce((a, b) => a + b, 0);
+              return (
+                <TableRow key={race} className="data-row">
+                  <TableCell className="font-serif italic text-base">{race}</TableCell>
+                  {allDistances.map(d => {
+                    const count = dists[d] || 0;
+                    const percentage = rowTotal > 0 ? (count / rowTotal * 100).toFixed(1) : 0;
+                    return (
+                      <TableCell key={d} className="data-value text-center">
+                        {count} <span className="opacity-40 text-[10px]">| {percentage}%</span>
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="data-value text-right font-bold bg-black/5">
+                    {rowTotal}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </DashboardSection>
 
       {/* Raw Data Table */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Search className="w-5 h-5" />
-            <h2 className="text-2xl font-serif italic uppercase tracking-tight">Registration Records</h2>
-          </div>
-          <p className="text-[10px] font-mono opacity-40 uppercase tracking-widest">Showing {filteredData.length} records</p>
-        </div>
-        
-        <div className="border border-[var(--line)] overflow-hidden">
-          <Table>
-            <TableHeader className="bg-[var(--ink)]">
-              <TableRow className="hover:bg-transparent border-none">
-                <TableHead className="col-header text-[var(--bg)] py-4">User ID</TableHead>
-                <TableHead className="col-header text-[var(--bg)]">Race</TableHead>
-                <TableHead className="col-header text-[var(--bg)]">Dist</TableHead>
-                <TableHead className="col-header text-[var(--bg)]">Stage</TableHead>
-                <TableHead className="col-header text-[var(--bg)]">Amount</TableHead>
-                <TableHead className="col-header text-[var(--bg)]">Created At</TableHead>
+      <DashboardSection 
+        title="Registration Records" 
+        icon={<Search className="w-5 h-5" />}
+        description="Detailed view of individual registrations"
+        rightElement={<p className="text-[10px] font-mono opacity-40 uppercase tracking-widest">Showing {filteredData.length} records</p>}
+      >
+        <Table>
+          <TableHeader className="bg-[var(--ink)]">
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead className="col-header text-[var(--bg)] py-4">User ID</TableHead>
+              <TableHead className="col-header text-[var(--bg)]">Race</TableHead>
+              <TableHead className="col-header text-[var(--bg)]">Dist</TableHead>
+              <TableHead className="col-header text-[var(--bg)]">Stage</TableHead>
+              <TableHead className="col-header text-[var(--bg)]">Amount</TableHead>
+              <TableHead className="col-header text-[var(--bg)]">Created At</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredData.slice(0, 15).map((p, idx) => (
+              <TableRow key={`${p["USER ID"]}-${idx}`} className="data-row">
+                <TableCell className="data-value font-bold">{p["USER ID"]}</TableCell>
+                <TableCell className="font-serif italic text-sm">{matchMap[p["MATCH ID"]] || p["MATCH ID"]}</TableCell>
+                <TableCell className="data-value">
+                  <Badge variant="outline" className="rounded-none border-[var(--line)] font-mono text-[10px]">
+                    {p["CU LY"]}km
+                  </Badge>
+                </TableCell>
+                <TableCell className="data-value text-[10px]">{p["STAGE"]}</TableCell>
+                <TableCell className="data-value">{parseFloat(p["SO TIEN"]?.replace(/,/g, "") || "0").toLocaleString()}</TableCell>
+                <TableCell className="data-value text-[10px] opacity-60">{p["THOI GIAN TAO"]}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredData.slice(0, 15).map((p, idx) => (
-                <TableRow key={`${p["USER ID"]}-${idx}`} className="data-row">
-                  <TableCell className="data-value font-bold">{p["USER ID"]}</TableCell>
-                  <TableCell className="data-value text-xs">{matchMap[p["MATCH ID"]] || p["MATCH ID"]}</TableCell>
-                  <TableCell className="data-value">
-                    <Badge variant="outline" className="rounded-none border-[var(--line)] font-mono text-[10px]">
-                      {p["CU LY"]}km
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="data-value text-[10px]">{p["STAGE"]}</TableCell>
-                  <TableCell className="data-value">{parseFloat(p["SO TIEN"]?.replace(/,/g, "") || "0").toLocaleString()}</TableCell>
-                  <TableCell className="data-value text-[10px] opacity-60">{p["THOI GIAN TAO"]}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
+            ))}
+          </TableBody>
+        </Table>
+      </DashboardSection>
 
       {/* Footer */}
       <footer className="pt-10 border-t border-[var(--line)] flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-mono uppercase tracking-widest opacity-40">
