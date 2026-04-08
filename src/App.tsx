@@ -51,7 +51,15 @@ import { cn } from "@/lib/utils";
 // Mapping of Match ID to Race Name
 type MatchMap = Record<string, string>;
 
+const SECRET_TOKEN = "xP9kL2mN5vR8qT1wY4zB7sD0fG3hJ6kL9mN2vR5qT8wY1zB4sD7fG0hJ3kL6mN9vR2qT5wY8zB1sD4fG7hJ0kL3mN6vR9qT2wY5zB8sD1fG4hJ7";
+
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("marathon_auth_token") === SECRET_TOKEN;
+  });
+  const [tokenInput, setTokenInput] = useState("");
+  const [authError, setAuthError] = useState(false);
+
   const [data, setData] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +79,23 @@ export default function App() {
   });
   const [searchTerm, setSearchTerm] = useState("");
 
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (tokenInput === SECRET_TOKEN) {
+      localStorage.setItem("marathon_auth_token", SECRET_TOKEN);
+      setIsAuthenticated(true);
+      setAuthError(false);
+    } else {
+      setAuthError(true);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("marathon_auth_token");
+    setIsAuthenticated(false);
+    setTokenInput("");
+  };
+
   const resetFilters = () => {
     setSelectedRace("all");
     setSelectedDistance("all");
@@ -85,18 +110,20 @@ export default function App() {
   }, [matchMap]);
 
   useEffect(() => {
-    fetch("/api/marathon-data")
-      .then((res) => res.json())
-      .then((json) => {
-        setData(json);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Failed to load data from Google Sheets");
-        setLoading(false);
-      });
-  }, []);
+    if (isAuthenticated) {
+      fetch("/api/marathon-data")
+        .then((res) => res.json())
+        .then((json) => {
+          setData(json);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setError("Failed to load data from Google Sheets");
+          setLoading(false);
+        });
+    }
+  }, [isAuthenticated]);
 
   // Helper to parse date from "DD/MM/YYYY HH:mm:ss" or similar
   const parseDate = (dateStr: string) => {
@@ -209,6 +236,52 @@ export default function App() {
     return Array.from(names).sort();
   }, [data, matchMap]);
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md space-y-8"
+        >
+          <div className="text-center space-y-2">
+            <div className="inline-block p-3 border border-[var(--line)] mb-4">
+              <Settings className="w-8 h-8" />
+            </div>
+            <h1 className="text-4xl font-serif italic uppercase tracking-tighter">Security Access</h1>
+            <p className="text-[10px] font-mono opacity-40 uppercase tracking-widest">Authorized Personnel Only</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="col-header">Access Token</Label>
+              <Input 
+                type="password"
+                placeholder="Enter security token..."
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                className={cn(
+                  "rounded-none border-[var(--line)] bg-white/50 font-mono text-center text-lg tracking-[0.5em]",
+                  authError && "border-red-500 ring-1 ring-red-500"
+                )}
+              />
+              {authError && (
+                <p className="text-[10px] font-mono text-red-600 uppercase text-center">Invalid Token. Access Denied.</p>
+              )}
+            </div>
+            <Button type="submit" className="w-full rounded-none bg-[var(--ink)] text-[var(--bg)] font-mono uppercase py-6 text-sm tracking-widest">
+              Verify & Enter
+            </Button>
+          </form>
+
+          <div className="pt-8 border-t border-[var(--line)] opacity-20 text-center">
+            <p className="text-[9px] font-mono uppercase tracking-widest">Marathon Revenue Intelligence v2.2.0</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-[var(--bg)]">
@@ -234,6 +307,7 @@ export default function App() {
         </div>
         
         <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={handleLogout} className="text-[10px] font-mono uppercase opacity-40 hover:opacity-100">Logout</Button>
           <SettingsPopup matchMap={matchMap} setMatchMap={setMatchMap} />
           <div className="h-12 w-[1px] bg-[var(--line)] opacity-20 hidden md:block" />
           <div className="text-right">
@@ -287,7 +361,7 @@ export default function App() {
           <div className="space-y-1 lg:col-span-2">
             <Label className="col-header">Date Range</Label>
             <Popover>
-              <PopoverTrigger asChild>
+              <PopoverTrigger render={
                 <Button
                   variant="outline"
                   className={cn(
@@ -309,7 +383,7 @@ export default function App() {
                     <span>Pick a date range</span>
                   )}
                 </Button>
-              </PopoverTrigger>
+              } />
               <PopoverContent className="w-auto p-0 rounded-none border-[var(--line)]" align="start">
                 <Calendar
                   initialFocus
@@ -547,12 +621,12 @@ function SettingsPopup({ matchMap, setMatchMap }: { matchMap: MatchMap; setMatch
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
+      <DialogTrigger render={
         <Button variant="outline" className="rounded-none border-[var(--line)] font-mono uppercase text-xs gap-2">
           <Settings className="w-4 h-4" />
           Race Mapping
         </Button>
-      </DialogTrigger>
+      } />
       <DialogContent className="rounded-none border-[var(--line)] max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif italic text-2xl uppercase">Race Mapping Settings</DialogTitle>
