@@ -10,28 +10,26 @@ async function startServer() {
 
   app.use(express.json());
 
-  const TOKEN_FILE = path.join(process.cwd(), "token.json");
+  const AUTH_TOKEN_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2-6kiwov9POZLPZEB7pBY6ced8BJZ8JEhpCg3PuYTY21TxawztC7gnEMQm2hVB3MB1cYXsDtu2UoI/pub?gid=1000314409&single=true&output=tsv";
 
-  // API route to get current token
+  // API route to get current token from Google Sheets
   app.get("/api/token", async (req, res) => {
     try {
-      const data = await fs.readFile(TOKEN_FILE, "utf-8");
-      res.json(JSON.parse(data));
-    } catch (error) {
-      res.status(500).json({ error: "Failed to read token" });
-    }
-  });
-
-  // API route to update token
-  app.post("/api/token", async (req, res) => {
-    try {
-      const { token } = req.body;
-      if (!token) return res.status(400).json({ error: "Token is required" });
+      // Add a timestamp to bypass potential caching
+      const cacheBuster = `&t=${Date.now()}`;
+      const response = await axios.get(AUTH_TOKEN_URL + cacheBuster);
+      const tsvData = response.data;
+      const lines = tsvData.split("\n");
       
-      await fs.writeFile(TOKEN_FILE, JSON.stringify({ token }, null, 2));
-      res.json({ success: true, token });
+      if (lines.length < 2) {
+        return res.status(500).json({ error: "Invalid token data format" });
+      }
+
+      const token = lines[1].trim();
+      res.json({ token });
     } catch (error) {
-      res.status(500).json({ error: "Failed to update token" });
+      console.error("Error fetching token from Google Sheets:", error);
+      res.status(500).json({ error: "Failed to fetch token" });
     }
   });
 
