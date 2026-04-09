@@ -18,6 +18,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { 
   Popover, 
@@ -37,7 +46,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { format, parse, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const SECRET_TOKEN = "xP9kL2mN5vR8qT1wY4zB7sD0fG3hJ6kL9mN2vR5qT8wY1zB4sD7fG0hJ3kL6mN9vR2qT5wY8zB1sD4fG7hJ0kL3mN6vR9qT2wY5zB8sD1fG4hJ7";
+const DEFAULT_TOKEN = "xP9kL2mN5vR8qT1wY4zB7sD0fG3hJ6kL9mN2vR5qT8wY1zB4sD7fG0hJ3kL6mN9vR2qT5wY8zB1sD4fG7hJ0kL3mN6vR9qT2wY5zB8sD1fG4hJ7";
 
 interface DashboardSectionProps {
   title: string;
@@ -71,7 +80,9 @@ function DashboardSection({ title, icon, children, description, rightElement }: 
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem("marathon_auth_token") === SECRET_TOKEN;
+    const saved = localStorage.getItem("marathon_auth_token");
+    const master = localStorage.getItem("marathon_master_token") || DEFAULT_TOKEN;
+    return saved === master;
   });
   const [tokenInput, setTokenInput] = useState("");
   const [authError, setAuthError] = useState(false);
@@ -80,6 +91,13 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Auth & Token Rotation
+  const [validToken, setValidToken] = useState(() => localStorage.getItem("marathon_master_token") || DEFAULT_TOKEN);
+  const [oldTokenInput, setOldTokenInput] = useState("");
+  const [newTokenGenerated, setNewTokenGenerated] = useState("");
+  const [changeError, setChangeError] = useState("");
+  const [isChanging, setIsChanging] = useState(false);
+
   // Filters
   const [selectedRace, setSelectedRace] = useState<string>("all");
   const [selectedDistance, setSelectedDistance] = useState<string>("all");
@@ -92,8 +110,8 @@ export default function App() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tokenInput === SECRET_TOKEN) {
-      localStorage.setItem("marathon_auth_token", SECRET_TOKEN);
+    if (tokenInput === validToken) {
+      localStorage.setItem("marathon_auth_token", validToken);
       setIsAuthenticated(true);
       setAuthError(false);
     } else {
@@ -105,6 +123,29 @@ export default function App() {
     localStorage.removeItem("marathon_auth_token");
     setIsAuthenticated(false);
     setTokenInput("");
+  };
+
+  const handleChangeToken = async () => {
+    setChangeError("");
+    if (oldTokenInput !== validToken) {
+      setChangeError("Current token is incorrect.");
+      return;
+    }
+
+    setIsChanging(true);
+    // Simulate generation delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for (let i = 0; i < 16; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    setValidToken(result);
+    localStorage.setItem("marathon_master_token", result);
+    setNewTokenGenerated(result);
+    setIsChanging(false);
   };
 
   const resetFilters = () => {
@@ -284,7 +325,75 @@ export default function App() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label className="col-header">Access Token</Label>
+              <div className="flex justify-between items-end">
+                <Label className="col-header">Access Token</Label>
+                <Dialog onOpenChange={(open) => { 
+                  if(!open) {
+                    setOldTokenInput("");
+                    setNewTokenGenerated("");
+                    setChangeError("");
+                  }
+                }}>
+                  <DialogTrigger asChild>
+                    <button type="button" className="text-[9px] font-mono uppercase opacity-40 hover:opacity-100 transition-opacity">
+                      Change Token?
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-none border-[var(--line)] max-w-sm bg-[var(--bg)]">
+                    <DialogHeader>
+                      <DialogTitle className="font-serif italic text-2xl uppercase">Token Rotation</DialogTitle>
+                      <DialogDescription className="font-mono text-[10px] uppercase opacity-60">
+                        Security Protocol: Update Authorization
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-6 space-y-4">
+                      {newTokenGenerated ? (
+                        <div className="p-4 border border-green-500 bg-green-50 space-y-3">
+                          <p className="font-mono text-[10px] text-green-700 uppercase font-bold text-center">New Token Generated</p>
+                          <div className="p-3 bg-white border border-green-200 font-mono text-sm break-all text-center select-all">
+                            {newTokenGenerated}
+                          </div>
+                          <p className="text-[9px] font-mono text-center opacity-60 uppercase">Copy and save this token. It will be required for next login.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label className="col-header">Current Token</Label>
+                            <Input 
+                              type="password"
+                              placeholder="Enter current token..."
+                              value={oldTokenInput}
+                              onChange={(e) => setOldTokenInput(e.target.value)}
+                              className="rounded-none border-[var(--line)] bg-white/50 font-mono"
+                            />
+                            {changeError && <p className="text-[9px] font-mono text-red-600 uppercase">{changeError}</p>}
+                          </div>
+                          <p className="text-[10px] font-serif italic opacity-70">
+                            Provide the current token to authorize the generation of a new random security credential.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      {!newTokenGenerated ? (
+                        <Button 
+                          onClick={handleChangeToken} 
+                          disabled={isChanging || !oldTokenInput}
+                          className="w-full rounded-none bg-[var(--ink)] text-[var(--bg)] font-mono uppercase text-xs py-6"
+                        >
+                          {isChanging ? "Generating..." : "Generate New Token"}
+                        </Button>
+                      ) : (
+                        <DialogTrigger asChild>
+                          <Button className="w-full rounded-none border border-[var(--line)] bg-transparent text-[var(--ink)] font-mono uppercase text-xs py-6">
+                            Done
+                          </Button>
+                        </DialogTrigger>
+                      )}
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <Input 
                 type="password"
                 placeholder="Enter security token..."
