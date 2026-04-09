@@ -2,10 +2,38 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import axios from "axios";
+import fs from "fs/promises";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use(express.json());
+
+  const TOKEN_FILE = path.join(process.cwd(), "token.json");
+
+  // API route to get current token
+  app.get("/api/token", async (req, res) => {
+    try {
+      const data = await fs.readFile(TOKEN_FILE, "utf-8");
+      res.json(JSON.parse(data));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to read token" });
+    }
+  });
+
+  // API route to update token
+  app.post("/api/token", async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) return res.status(400).json({ error: "Token is required" });
+      
+      await fs.writeFile(TOKEN_FILE, JSON.stringify({ token }, null, 2));
+      res.json({ success: true, token });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update token" });
+    }
+  });
 
   // API route to fetch marathon data from Google Sheets TSV
   app.get("/api/marathon-data", async (req, res) => {

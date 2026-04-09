@@ -79,11 +79,7 @@ function DashboardSection({ title, icon, children, description, rightElement }: 
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const saved = localStorage.getItem("marathon_auth_token");
-    const master = localStorage.getItem("marathon_master_token") || DEFAULT_TOKEN;
-    return saved === master;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tokenInput, setTokenInput] = useState("");
   const [authError, setAuthError] = useState(false);
 
@@ -92,11 +88,12 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   
   // Auth & Token Rotation
-  const [validToken, setValidToken] = useState(() => localStorage.getItem("marathon_master_token") || DEFAULT_TOKEN);
+  const [validToken, setValidToken] = useState(DEFAULT_TOKEN);
   const [oldTokenInput, setOldTokenInput] = useState("");
   const [newTokenGenerated, setNewTokenGenerated] = useState("");
   const [changeError, setChangeError] = useState("");
   const [isChanging, setIsChanging] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   // Filters
   const [selectedRace, setSelectedRace] = useState<string>("all");
@@ -133,8 +130,6 @@ export default function App() {
     }
 
     setIsChanging(true);
-    // Simulate generation delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let result = "";
@@ -142,9 +137,23 @@ export default function App() {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     
-    setValidToken(result);
-    localStorage.setItem("marathon_master_token", result);
-    setNewTokenGenerated(result);
+    try {
+      const response = await fetch("/api/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: result })
+      });
+      
+      if (response.ok) {
+        setValidToken(result);
+        setNewTokenGenerated(result);
+      } else {
+        setChangeError("Failed to save token to server.");
+      }
+    } catch (err) {
+      setChangeError("Network error while saving token.");
+    }
+    
     setIsChanging(false);
   };
 
@@ -155,6 +164,27 @@ export default function App() {
     setDateRange({ from: undefined, to: undefined });
     setSearchTerm("");
   };
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const response = await fetch("/api/token");
+        const data = await response.json();
+        if (data.token) {
+          setValidToken(data.token);
+          const saved = localStorage.getItem("marathon_auth_token");
+          if (saved === data.token) {
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (err) {
+        console.error("Auth initialization failed", err);
+      } finally {
+        setIsAuthChecking(false);
+      }
+    };
+    initAuth();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -306,6 +336,17 @@ export default function App() {
     });
     return Array.from(names).sort();
   }, [data]);
+
+  if (isAuthChecking) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[var(--bg)]">
+        <div className="text-center">
+          <Activity className="w-12 h-12 animate-spin mx-auto mb-4" />
+          <p className="font-mono text-sm uppercase tracking-widest">Verifying Security...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
